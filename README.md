@@ -1,5 +1,9 @@
 # sakura-lsldb
 
+[![CI](https://github.com/Sakura-Studios-IKE/sakura-lsldb/actions/workflows/ci.yml/badge.svg)](https://github.com/Sakura-Studios-IKE/sakura-lsldb/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/Sakura-Studios-IKE/sakura-lsldb)](https://github.com/Sakura-Studios-IKE/sakura-lsldb/releases)
+
 **A gdb-style CLI debugger for LSL scripts — by Sakura Studios, IKE.**
 
 `sakura-lsldb` (binary: `lsldb`) drives
@@ -61,11 +65,29 @@ lsldb attached to slemu (type `help`)
 
 ## Install
 
+### From source
+
 ```sh
 make                                        # Linux / macOS / *BSD / MinGW
 cmake -B build && cmake --build build       # cross-platform
-sudo make install                           # /usr/local/bin/lsldb
+sudo make install                           # binary + man lsldb(1)
 ```
+
+### Arch Linux (AUR)
+
+```sh
+yay -S sakura-lsldb            # latest tagged release
+yay -S sakura-lsldb-git        # follow main
+```
+
+See [`packaging/aur/README.md`](./packaging/aur/README.md) for the
+PKGBUILDs.
+
+### Pre-built binaries
+
+Linux / macOS / Windows binaries are attached to each
+[GitHub Release](https://github.com/Sakura-Studios-IKE/sakura-lsldb/releases).
+After installing, `man lsldb` shows the full reference.
 
 `lsldb` needs the `slemu` binary to spawn — it looks for it on `PATH`
 first, then `./slemu`, `./sakura-slemu/slemu`, `../sakura-slemu/slemu`.
