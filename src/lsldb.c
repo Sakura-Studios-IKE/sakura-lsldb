@@ -452,7 +452,20 @@ static void usage(const char *p) {
 "  --source PATH      register an LSL source file (repeatable)\n"
 "  -h, --help         show this help\n"
 "\n"
-"Inside the REPL type `help` for the command list.\n",
+"Inside the REPL type `help` for the command list.\n"
+"\n"
+"Examples:\n"
+"  lsldb -- greeter.lslbc                          # simplest interactive run\n"
+"  lsldb --source greeter.lsl -- greeter.lslbc     # with source listings\n"
+"  lsldb --slemu ./build-debug/slemu \\\n"
+"        --source club_vendor.lsl \\\n"
+"        -- --config worlds/club.cfg \\\n"
+"           --commands scenarios/buy_one.cmd \\\n"
+"           club_vendor.lslbc                      # multi-avatar debug session\n"
+"  printf 'break 4\\ncontinue\\nprint msg\\nquit\\n' \\\n"
+"    | lsldb --source greeter.lsl -- greeter.lslbc # scripted via shell pipe\n"
+"\n"
+"See lsldb(1) for the complete manual.\n",
         p);
 }
 

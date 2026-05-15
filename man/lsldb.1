@@ -1,0 +1,278 @@
+.TH LSLDB 1 "2026-05-15" "Sakura LSL Toolchain 1.0.0" "Sakura LSL Toolchain"
+.\" Manual page for lsldb(1) — the Sakura Studios LSL debugger front-end.
+.\" Copyright (c) 2026 Sakura Studios, IKE. Licensed under the MIT License.
+.SH NAME
+lsldb \- interactive, gdb-like debugger for LSL scripts running under slemu(1)
+.SH SYNOPSIS
+.B lsldb
+.RI [ options ]
+.B \-\-
+.RI < slemu " " args ... >
+.IR script.lslbc
+.SH DESCRIPTION
+.B lsldb
+is the Sakura Studios interactive debugger for the Linden Scripting
+Language. It is a front-end for
+.BR slemu (1):
+on startup it spawns a
+.B slemu
+child with the
+.B \-\-debug
+flag, attaches to its JSON-line debug protocol over a pair of pipes,
+and presents a familiar
+.BR gdb (1)-style
+read-eval-print loop on the controlling terminal.
+.PP
+Every argument after the literal
+.B \-\-
+separator is forwarded verbatim to the
+.B slemu
+child, so the full suite of
+.B slemu
+options
+.RB ( \-\-config ,
+.BR \-\-commands ,
+.BR \-\-http\-fixture ,
+.BR \-\-volume ,
+etc.) is available inside a debug session without any wrapper
+syntax.
+.PP
+.B lsldb
+itself is purely a thin REPL plus a source cache: it knows nothing
+about LSL semantics, and instead asks
+.B slemu
+to set breakpoints, step, evaluate variables, list frames and dump
+the region snapshot. World events emitted by the simulator are
+echoed live between prompts so you can see chat, money and
+touch traffic alongside the debugger output.
+.SH OPTIONS
+.TP
+.BI \-\-slemu " PATH"
+Use
+.I PATH
+as the
+.B slemu
+binary. The default is to search
+.IR ./slemu ,
+.IR ./sakura-slemu/slemu ,
+.IR ../sakura-slemu/slemu ,
+.IR ../../sakura-slemu/slemu ,
+.IR /usr/local/bin/slemu ,
+and finally
+.BR slemu
+on
+.BR $PATH .
+.TP
+.BI \-\-source " PATH"
+Register an LSL source file with the source cache so that the
+.B list
+command and stop-point context display can show source lines around
+the current statement. May be repeated.
+.TP
+.BR \-h ", " \-\-help
+Show a short usage summary and exit.
+.TP
+.B \-\-
+Separator. Every following argument is passed to the
+.B slemu
+child unchanged, including the final
+.I script.lslbc
+positional.
+.SH "REPL COMMANDS"
+The following commands are recognised at the
+.B (lsldb)
+prompt. Most accept the abbreviation shown in parentheses.
+.TP
+.BR run " (" r ),  " continue " (" c )
+Start or resume execution until the next stop event.
+.TP
+.BR step " (" s ),  " next " (" n )
+Step one source statement.
+.TP
+.BI break " FILE" : LINE
+.TQ
+.BI break " LINE"
+Set a breakpoint. Without a file, any source file whose name matches
+the current script is acceptable.
+.TP
+.BI delete " N"
+Remove breakpoint
+.IR N .
+.TP
+.B info
+List active breakpoints and catchpoints.
+.TP
+.BI catch " KIND"
+Stop when the next event of
+.I KIND
+fires. Recognised kinds include
+.BR chat ,
+.BR money ,
+.BR dialog ,
+.BR state_change ,
+and
+.BR http_out .
+.TP
+.BI uncatch " N"
+Remove catchpoint
+.IR N .
+.TP
+.BR print " (" p ") " \fINAME\fR
+Evaluate and print the named variable in the current frame.
+.TP
+.B locals
+List the current frame's locals with types and values.
+.TP
+.B globals
+List the script's globals with types and values.
+.TP
+.BR backtrace " (" bt )
+Show the active call frames.
+.TP
+.BR list " (" l )
+Show source context around the current line.
+.TP
+.BI source " PATH"
+Register an additional source file at run time (equivalent to
+.BR \-\-source ).
+.TP
+.B snapshot
+Dump the full region state (avatars, balances, KVP, listens,
+inventory) as a JSON object.
+.TP
+.B events on|off
+Toggle the live echo of world events between prompts.
+.TP
+.BR help " (" h ", " ? )
+Show the in-REPL command list.
+.TP
+.BR quit " (" q )
+Detach, terminate the
+.B slemu
+child, and exit.
+.SH EXAMPLES
+.PP
+The simplest possible interactive session: compile a script with
+.BR lslc (1)
+and step through it. Everything after
+.B \-\-
+is forwarded to
+.BR slemu (1),
+so the script file goes at the end:
+.PP
+.RS
+.B lslc \-c greeter.lsl
+.br
+.B lsldb \-\- greeter.lslbc
+.RE
+.PP
+Register one or more LSL source files so the
+.B list
+command and stop-point banner can show source context. Without
+.BR \-\-source ,
+.B lsldb
+still works but only shows file and line numbers:
+.PP
+.RS
+.B lsldb \-\-source greeter.lsl \-\- greeter.lslbc
+.RE
+.PP
+Point at a specific
+.B slemu
+build (for example, a debug build sitting next to your in-tree
+checkout) and pass slemu options through. A multi-avatar debug
+session is just a matter of forwarding
+.B \-\-config
+and
+.B \-\-commands
+through the separator:
+.PP
+.RS
+.nf
+.B lsldb \-\-slemu ./build\-debug/slemu \-\-source club_vendor.lsl \e
+.B "       \-\- \-\-config worlds/club.cfg \-\-commands scenarios/buy_one.cmd \e"
+.B "          club_vendor.lslbc"
+.fi
+.RE
+.PP
+Drive
+.B lsldb
+non-interactively from a shell. Because the REPL reads commands one
+per line from standard input, scripted sessions \(em including CI
+smoke tests \(em can be written as a shell here-document. The example
+below sets a breakpoint, runs to it, prints a variable, and quits:
+.PP
+.RS
+.nf
+.B printf '%s\en' \e
+.B "    'break 4'     \e"
+.B "    'continue'    \e"
+.B "    'print msg'   \e"
+.B "    'quit'        \e"
+.B "  | lsldb \-\-source greeter.lsl \-\- greeter.lslbc"
+.fi
+.RE
+.SH EXIT STATUS
+.TP
+.B 0
+The debug session completed normally; the user issued
+.B quit
+or the inferior exited on its own.
+.TP
+.B 2
+Driver error: no script supplied, the
+.B slemu
+binary could not be found or executed, or the debug pipes could not
+be created.
+.SH FILES
+.TP
+.IR script .lslbc
+SLBC bytecode produced by
+.BR "lslc \-c" .
+.TP
+.I LSL source files
+Registered through
+.B \-\-source
+or the
+.B source
+REPL command; used purely for displaying source context.
+.TP
+.B slemu
+Spawned as a child process. The binary is located via
+.B \-\-slemu
+or the search list described above.
+.SH BUGS
+The
+.B \-\-source
+matching is intentionally loose: a source file matches a script if
+either path is a substring of the other. In monorepos with several
+scripts of the same basename you may need to register only the file
+you intend to inspect.
+.PP
+.B lsldb
+forwards SIGINT to itself (interrupting the REPL), not to the
+.B slemu
+child; use the
+.B quit
+command, not Ctrl-C, to leave a session cleanly.
+.PP
+Please report bugs to
+.MT shiho@sakurastudios.eu
+Shiho Sakura
+.ME .
+.SH SEE ALSO
+.BR slemu (1),
+.BR lslc (1),
+.BR lsltest (1),
+.BR gdb (1)
+.SH AUTHOR
+Shiho Sakura <shiho@sakurastudios.eu>, on behalf of Sakura Studios, IKE.
+.SH COPYRIGHT
+Copyright \(co 2026 Sakura Studios, IKE.
+.PP
+Released under the MIT License. See the
+.B LICENSE
+file in the source distribution for the full text. This is free
+software: you are free to change and redistribute it. There is
+.B NO WARRANTY
+to the extent permitted by law.
