@@ -1,0 +1,13 @@
+*.o
+*.obj
+/lsldb
+/lsldb.exe
+src/*.o
+/build/
+/build-*/
+cmake-build-*/
+.idea/
+.vs/
+.vscode/
+*.swp
+.DS_Store
