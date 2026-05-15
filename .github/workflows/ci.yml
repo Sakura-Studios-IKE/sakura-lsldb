@@ -58,13 +58,22 @@ jobs:
           VERSION="${GITHUB_REF#refs/tags/v}"
           awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {flag=1; next} flag && /^## \[/ {flag=0} flag' CHANGELOG.md > release-body.md
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+      - name: Stage release binaries with OS-suffixed names
+        run: |
+          mkdir -p release-bins
+          cp artifacts/lsldb-ubuntu-latest/lsldb release-bins/lsldb-linux-x86_64
+          cp artifacts/lsldb-macos-latest/lsldb  release-bins/lsldb-macos-x86_64
+          chmod +x release-bins/lsldb-linux-x86_64 release-bins/lsldb-macos-x86_64
+          ls -la release-bins/
       - uses: softprops/action-gh-release@v2
         with:
           name: sakura-lsldb ${{ steps.changelog.outputs.version }}
           body_path: release-body.md
+          draft: false
+          prerelease: false
           files: |
-            artifacts/lsldb-ubuntu-latest/lsldb
-            artifacts/lsldb-macos-latest/lsldb
+            release-bins/lsldb-linux-x86_64
+            release-bins/lsldb-macos-x86_64
 
   publish-aur:
     if: startsWith(github.ref, 'refs/tags/v')
